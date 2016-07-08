@@ -1,0 +1,140 @@
+\documentclass[10pt]{article}
+\usepackage{fullpage}
+\usepackage{palatino,color,graphicx}
+\usepackage{eurosym}
+\usepackage{natbib}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{mathrsfs}
+
+\usepackage{amsthm}
+\usepackage{hyperref}
+
+\newtheorem{defn}{Definition} 
+\newtheorem{prop}[defn]{Proposition} 
+
+\def\vx{\bar{x}}
+\def\vc{\bar{c}}
+\def\vs{\bar{s}}
+\def\vj{\bar{j}}
+\def\vw{\bar{w}}
+\def\vl{\bar{l}}
+\def\vu{\bar{u}}
+\def\vT{\bar{T}}
+\def\vZ{\bar{Z}}
+\def\vR{\bar{R}}
+\def\va{\bar{a}}
+\def\tt{\theta}
+\def\vtt{\bar{\theta}}
+\def\num_part{\#\pi}
+\def\N_srg{N^{\num_part}}
+\def\T_srg{T^{\num_part}}
+\def\Space{\varTheta \times \mathcal{W}}
+\def\hmu{\hat{\mu}}
+\def\htau{\hat{\tau}}
+
+\newcommand{\GP}{\Gamma\text{P}}
+\title{Modeling single nucleotide variants (SNV)}
+\author{Vinayak Rao}
+\begin{document}
+\maketitle
+
+\section{Next generation sequencing}
+We start with a reference genome sequence from an individual that can be regarded as 'normal' or 'typical'.
+For simplicity, sequencing information from only one chromosome is used, and the alleles for the genes on that chromosome are
+duplicated (for diploid organisms). This reference genome is thus treated as homozygous, and written as $aa$.
+It some studies it might be important to use both alleles in the reference individual (if the identity of that individual is important).
+
+Next generation sequencing (NGS) methods produce millions of short reads (30-400 nucleotides) from another individuals genome that are aligned to the 
+reference genome sequence. At any location, this individuals genotype can match with the reference genotype. Alternatively, the
+individual can be heterozygous ($ab$), or homozygous for the non-reference allele ($bb$). Of course, there can be more than one
+non-reference allele, but this is rare and is usually ignored. The latter 2 cases ($ab$ and $bb$) are called single nucleotide
+variants (SNVs). If we have some reference population, and if more that $1\%$ of that population has that variant, the SNV becomes a SNP. 
+
+The SNVs we have discussed are called a germline variants, i.e.\ a variant the individual inherits from
+their parents. In an error-free world with high read coverage, there would be either $0, 50$ or $100$ percent agreement with
+the reference genotype, corresponding to cases $aa$, $ab$ and $bb$. In particular, for any read, the probability of matching the reference
+allele can be $0, .5$ or $1$, and the number of matches follows a binomial distribution with that probability, and the number of trials equalling
+the number of reads (called the depth of read coverage). Sources of error and bias include the sequenced reads themselves
+and alignement errors. These can be mitigated by increasing the depth of read coverage, though this can be expensive. In the
+simplest case, these errors are modeled by allowing $p$ to deviate slightly from $0$ or $1$. At any location, the three
+genotypes can be gives an uniformative prior, or a prior estimated from population data.
+
+\section{Somatic mutations}
+In addition to methods that align reads from individual sample(s) to a reference genome in order to detect germline genetic variants, 
+reads from multiple tissue samples within a single individual can be aligned and compared in order to detect somatic variants. 
+These variants correspond to mutations that have occurred de novo within groups of somatic cells within an individual (that is, 
+they are not present within the individual's germline cells). This form of analysis has been frequently applied to the study of cancer. 
+While germline mutations indicate important gene functions in cancer, their contribution to cancer is relatively low. Typically more
+informative are studies designed around investigating the profile of somatic mutations within cancerous tissues, often leading to the
+discovery of genes affected by somatic mutations leading to cancer.
+
+\section{SNVMix}
+A simple model of SNVs (germline or somatic) is the following. We have a 3-component distribution over genotype $\pi$. Each genotype
+has a probability of an SNV, ideally these are $0,0.5$ and $1$ but we relax these by placing Beta priors (usually with informative hyperparameters).
+Letting the depth at location $i$ be $N_i$, the number of mutations is then binomially distributed.
+\begin{align}
+  \pi &\sim \text{Dirichlet}(\delta) \\
+  \mu_k & \sim \text{Beta}(\alpha_k,\beta_k)
+  G_i &\sim \pi \\
+  a_i|G_i = k &\sim \text{Bin}(\mu_k,N_i)  
+\end{align}
+
+\section{JointSNVMix}
+To more accurately tell germline from somatic mutations, it is useful to jointly model paired normal/tumor sequence data from the same
+individual. A simple extension of the earlier model now assigns an individual a 9-component probability distribution, with each component
+representing a normal and a tumor genotype. The normal and tumor genotype are assigned SNV probabilities from a Beta distribution.
+
+\section{Modeling contamination rates}
+ Consider now a mixture of normal and tumor tissue. Assume the mixing proportion is unknown, call it $\zeta$. Write $\theta^e_i$ for the
+ genotype at site $i$, with $x \in \{n,t\}$ depending on whether it is the normal or tumurous tissue. Observe that there is a one-to-one
+ mapping between the genotype and the probability of detecting a mutation, $\{aa,ab,bb\} \rightarrow \{0,0.5,1\}$, and we let $\theta$ take
+ values in the latter space. Then the probability of observing an SNV at site $i$ is $\rho_i =  \zeta \theta^n_i + (1-\zeta) \theta^t_i$.
+ We observe the number of SNVs $x_i$ and the read depth $n_i$, with the former distributed as Binomial$(\rho_i, n_i)$. We assume the 
+ $\theta_i$'s at each location are drawn from a distribution $G$, on which we place a Dirichlet prior.
+ {\color{red} Do we use the same $G$ for normal and tumor? We shouldn't.}. To each $\theta$ we also add a small $\epsilon$ offset to
+ avoid assigning noise zero probability. Letting $e$ take values in $\{t,n\}$, and $i$ in $1$ to $N$, the whole model is:
+ \begin{align}
+   \theta^* &= \{0+\epsilon, 0.5, 1-\epsilon\} \\
+   G^e &\sim \text{Dir} \\ 
+   m^e_i & \sim G^e \\
+   \theta^e_i &= \theta^*_{m_i} \\
+   \rho_i &= \zeta \theta^n_i + (1-\zeta) \theta^t_i \\
+   x_i &\sim \text{Bin}(n_i,\rho_i)
+ \end{align}
+ In practice, mixing isn't perfect, so that $\zeta$ varies from site to site. One approach is model the $\zeta_i$ as drawn i.i.d.\ from some
+ continuous distribution on the interval $[0,1]$. Instead, we share information by clustering the $\zeta$'s assuming they are drawn from a 
+ Dirichlet-process distributed distribution $\pi$:
+ \begin{align}
+   \zeta_i \sim \pi, \pi \sim \text{DP}(\text{Unif}(0,1))
+ \end{align}
+%  \begin{figure}[!h] 
+%  \centering
+%    \includegraphics[width=.29\textwidth]{tree.pdf}
+%  \end{figure}
+Note that the model as specified above can have problems with identifiability, especially with a DP prior on $\zeta$. It is always possible for
+the model to create a new cluster at $(1-\zeta)$, and swap $\theta_t$ and $\theta_n$. One possibility is to assume the $\zeta_i$ is always less
+$0.5$ by changing the base measure of the DP to Unif$(0,0.5)$. {\color{red} Will this work with just one mixture?}
+
+We can also assume we have access to a second mixture with its own $\pi^2$, and thus it's own $\rho^2$. Now solving.
+%since there is always a possibility that $(\zeta,\theta^n$ can 
+%be swapped with a $(1-\zeta,\theta^t)$, and the model will confuse germline and somatic mutations. One fix is to assume 
+
+\section{Misc}
+\url{https://www.biostars.org/p/80826/}
+
+To rehash/expand on what Dan said, if you're sequencing normal tissue, you generally expect to see single-nucleotide variant sites fall into one of three bins: 0%, 50%, or 100%, depending on whether they're heterozygous or homozygous.
+
+With tumors, you have to deal with a whole host of other factors:
+
+    Normal admixture in the tumor sample: lowers variant allele fraction (VAF)
+        Tumor admixture in the normal - this occurs when adjacent normals are used, or in hematological cancers, when there is some blood in the skin normal sample
+            Subclonal variants, which may occur in any fraction of the cells, meaning that your het-site VAF might be anywhere from 50% down to sub-1%, depending on the tumor's clonal architecture and the sensitivity of your method
+                Copy number variants, cn-neutral loss of heterozygosity, or ploidy changes, all of which again shift the expected distribution of variant fractions
+
+                These, and other factors, make calling somatic variants difficult and still an area that is being heavily researched. If someone tells you that somatic variant calling is a solved problem, they probably have never tried to call somatic variants.
+
+\end{document}
+
+
