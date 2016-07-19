@@ -18,8 +18,8 @@ dataGen = function(K, num_obs, theta, diffN_i, diffzeta){
 #   zeta2   = sample(diffzeta, num_obs, replace = TRUE)
   theta_n = sample(theta, num_obs, replace=TRUE)
   theta_t = sample(theta, num_obs, replace=TRUE)
-  N_i1    = sample(diffN_i, num_obs, replace=TRUE)
-  N_i2    = sample(diffN_i, num_obs, replace=TRUE)
+  N_i1    = rep(diffN_i, num_obs)
+  N_i2    = rep(diffN_i, num_obs)
   mixDat1 = rbinom(num_obs, N_i1, zeta1*theta_n + (1-zeta1)*theta_t)
   mixDat2 = rbinom(num_obs, N_i2, zeta2*theta_n + (1-zeta2)*theta_t)
   rho1    = zeta1*theta_n + (1-zeta1)*theta_t

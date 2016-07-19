@@ -9,10 +9,10 @@
 
 
 #Metropolis-Hastings algorithm for Binomial-Beta
-mh_algoZetaMat <- function(dataMat, zeta, theta){
+mh_algoZetaMat <- function(dataMat, zeta, theta, ds){
   zetaCurr    = zeta
   alpha_base  = 0
-  beta_base   = 0.5
+  beta_base   = 1
   mhloop      = 1
   
   dataMat_up = cbind(dataMat, theta_n = theta[dataMat[,"ucl_n"]], 
@@ -22,7 +22,7 @@ mh_algoZetaMat <- function(dataMat, zeta, theta){
   params = numeric(length(zetaCurr))
   
   for(t in 1:mhloop){
-    zetaCand = runif(length(zetaCurr),0,0.5)
+    zetaCand = runif(length(zetaCurr),alpha_base, beta_base)
     
     #Calculating the acceptance probability 
     for (i in 1:length(zetaCurr)){
@@ -30,21 +30,30 @@ mh_algoZetaMat <- function(dataMat, zeta, theta){
       
       if (class(mydatta) == "numeric")
         mydatta = as.matrix(t(mydatta))
-
+      
+      # if (ds == 1){
+        theta_data_1 = mydatta[,"theta_n"]
+        theta_data_2 = mydatta[,"theta_t"]
+        
+#       } else if (ds == 2){
+#         theta_data_1 = mydatta[,"theta_t"]
+#         theta_data_2 = mydatta[,"theta_n"]
+#       }
+#       
       n_vec = sum(dbinom(mydatta[,"mixDat"],
                          mydatta[,"trials"],
-                         zetaCand[i]*mydatta[,"theta_n"] + 
-                           (1-zetaCand[i])*mydatta[,"theta_t"], 
+                         zetaCand[i]*theta_data_1 + 
+                           (1-zetaCand[i])*theta_data_2, 
                          log = TRUE), 
-                 dunif(zetaCand[i], 
+                  dunif(zetaCand[i], 
                         alpha_base,
                         beta_base,
                         log = TRUE))
       
       d_vec = sum(dbinom(mydatta[,"mixDat"],
                          mydatta[,"trials"],
-                         zetaCurr[i]*mydatta[,"theta_n"]+ 
-                           (1-zetaCurr[i])*mydatta[,"theta_t"],
+                         zetaCurr[i]*theta_data_1+ 
+                           (1-zetaCurr[i])*theta_data_2,
                          log = TRUE), 
                   dunif(zetaCurr[i],
                         alpha_base,
@@ -56,8 +65,11 @@ mh_algoZetaMat <- function(dataMat, zeta, theta){
       
       ratio = n_vec-d_vec
 
-      params[i] <- if(log(runif(1)) < ratio) zetaCand[i] else zetaCurr[i]
-      
+      # if (ds == 1)
+        params[i] <- if(log(runif(1)) < ratio) zetaCand[i] else zetaCurr[i]
+#       else 
+#         params[i] <- if(log(runif(1)) < ratio) 1-zetaCand[i] else zetaCurr[i]
+#       
     }
     zetaCurr = params 
   }

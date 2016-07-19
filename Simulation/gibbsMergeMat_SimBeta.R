@@ -9,7 +9,7 @@
 
 rm(list = ls())
 
-source("./mh_algoZetaMat_Sim.R")
+source("./mh_algoZetaMat_SimBeta.R")
 source("./dataGen.R")
 source("./library.R")
 
@@ -20,7 +20,7 @@ kk = 3
 num_obs  = 100
 zeta_sym = 0.1
 diffzeta = c(0.1, 0.9)
-diffN_i  = c(100, 200)
+diffN_i  = 100
 theta    = c(0, 0.5, 1)
 datta    = dataGen(kk, num_obs, theta, diffN_i, diffzeta)
 
@@ -28,36 +28,40 @@ data1 = datta$oridata1[c('trials', 'mixDat')]
 data2 = datta$oridata2[c('trials', 'mixDat')]
 
 ############### Parameter initialization ##############
-alpha     = 1
+alpha     = 0.01
 
-alpha_base = 0 #parameters of base distribution
-beta_base  = 0.5
+alpha_base = 1 #parameters of base distribution
+beta_base  = 10
 m          = 2 #number of auxiliary params
 numIter    = 8000 
 burnIn     = 3000 
 telliter   = 500 
-xtraSpace  = 1000
+xtraSpace  = 2*num_obs
 alpha_0    = c(1, 1, 1)
 
 #initialize number of clusters
-K = 2
-# K = floor(alpha*log(num_obs))
+K = num_obs
 
 #initialize cluster assignment for zeta 
-data1$cluster = sapply(1:num_obs, function(x){
-  if (datta$oridata1$zeta[x] == diffzeta[1])
-    1
-  else 
-    2
-})
+data1$cluster = sample(c(1:K, sample(1:K, num_obs-K, replace=TRUE)), 
+                       num_obs, replace=FALSE)
+data2$cluster = sample(c(1:K, sample(1:K, num_obs-K, replace=TRUE)),
+                       num_obs, replace=FALSE)
 
-data2$cluster = sapply(1:num_obs, function(x){
-  if (datta$oridata2$zeta[x] == diffzeta[1])
-    1
-  else 
-    2
-})
-
+# data1$cluster = sapply(1:num_obs, function(x){
+#   if (datta$oridata1$zeta[x] == diffzeta[1])
+#     1
+#   else 
+#     2
+# })
+# 
+# data2$cluster = sapply(1:num_obs, function(x){
+#   if (datta$oridata2$zeta[x] == diffzeta[2])
+#     1
+#   else 
+#     2
+# })
+# 
 # data1$cluster = sample(
 #   c(1:K, sample(
 #     1:K, num_obs-K, replace=TRUE)
@@ -74,43 +78,37 @@ data2$cluster = sapply(1:num_obs, function(x){
 #initialize cluster assignment for theta
 theta = c(0, 0.5, 1)
 
-u_n = sapply(1:num_obs, function(x){
-  if (datta$oridata1$theta_n[x] == 0)
-    1
-  else if (datta$oridata1$theta_n[x] == 0.5)
-    2
-  else
-    3
-})
+# u_n = sapply(1:num_obs, function(x){
+#   if (datta$oridata1$theta_n[x] == 0)
+#     1
+#   else if (datta$oridata1$theta_n[x] == 0.5)
+#     2
+#   else
+#     3
+# })
+# 
+# u_t = sapply(1:num_obs, function(x){
+#   if (datta$oridata1$theta_t[x] == 0)
+#     1
+#   else if (datta$oridata1$theta_t[x] == 0.5)
+#     2
+#   else
+#     3
+# })
 
-u_t = sapply(1:num_obs, function(x){
-  if (datta$oridata1$theta_t[x] == 0)
-    1
-  else if (datta$oridata1$theta_t[x] == 0.5)
-    2
-  else
-    3
-})
+data1$ucl_n = sample(1:3, num_obs, replace = TRUE)
+data1$ucl_t = sample(1:3, num_obs, replace = TRUE)
 
-# u_n = sample(1:3, num_obs, replace = TRUE)
-# u_t = sample(1:3, num_obs, replace = TRUE)
-
-data1$ucl_n = u_n
-data1$ucl_t = u_t
-
-data2$ucl_n = u_n
-data2$ucl_t = u_t
+data2$ucl_n = data1$ucl_n 
+data2$ucl_t = data1$ucl_t 
 
 rho = list()
 rho[[1]] = matrix(NA, nrow = num_obs, ncol = numIter)
 rho[[2]] = matrix(NA, nrow = num_obs, ncol = numIter)
 
 #initialize zeta for observations in each cluster
-zeta1 = diffzeta
-zeta2 = diffzeta
-
-# zeta1 = runif(K, alpha_base, beta_base)
-# zeta2 = runif(K, alpha_base, beta_base)
+zeta1 = rbeta(K, alpha_base, beta_base)
+zeta2 = 1-rbeta(K, alpha_base, beta_base)
 
 datanum = list()
 datanum[[1]] = list(data   = as.matrix(data1), 
@@ -126,6 +124,8 @@ store_zeta  = list(zeta1 = matrix(NA,
                                   ncol = numIter))
 store_theta_n = matrix(NA, nrow = num_obs, ncol = numIter)
 store_theta_t = matrix(NA, nrow = num_obs, ncol = numIter)
+
+store_theta_prob_sum = matrix(0, nrow = num_obs, ncol = 9)
 
 #Rprof("iteration.out")
 system.time(
@@ -148,6 +148,14 @@ for (ii in 1:numIter){
                           num_obs,
                           replace=FALSE)
     
+    if (d == 1){
+      alpha_base = 1
+      beta_base  = 10
+    } else {
+      alpha_base = 10
+      beta_base  = 1
+    }
+    
     #iteration for each observation
     for (b in 1:num_obs){
       
@@ -163,7 +171,7 @@ for (ii in 1:numIter){
       if (counts[cl[j]]!=0){
         
         #drawing values for the aux params from G_0
-        zeta[(K+1):h] = runif(m, alpha_base, beta_base) 
+        zeta[(K+1):h] = rbeta(m, alpha_base, beta_base) 
         
       } else if (counts[cl[j]]==0 & counts[cl[j]]!=K){
         
@@ -182,7 +190,7 @@ for (ii in 1:numIter){
         h = h-1
         
         #drawing values for the aux params from G_0
-        zeta[(K+2):h] = runif(m-1, alpha_base, beta_base)
+        zeta[(K+2):h] = rbeta(m-1, alpha_base, beta_base)
         
       } else if (counts[cl[j]]==0 & cl[j]==K) {
         
@@ -191,7 +199,7 @@ for (ii in 1:numIter){
         h = h-1
         
         #drawing values for the aux params from G_0
-        zeta[(K+2):h] = runif((m-1), alpha_base, beta_base)
+        zeta[(K+2):h] = rbeta((m-1), alpha_base, beta_base)
         
       }
       
@@ -240,7 +248,7 @@ for (ii in 1:numIter){
     } #end of observations loop 
     
     #sampling the new parameters using the MH Algorithm 
-    zeta[1:K] = mh_algoZetaMat(dataMat, zeta[1:K], theta)
+    zeta[1:K] = mh_algoZetaMat(dataMat, zeta[1:K], theta, d)
     
     datanum[[d]] = list(data   = dataMat, 
                         zeta   = zeta[1:K])
@@ -256,6 +264,11 @@ for (ii in 1:numIter){
   datanum[[1]]$data = u_Update$dataMat1
   datanum[[2]]$data = u_Update$dataMat2
   
+  if (ii > burnIn){
+    store_theta_prob_sum = store_theta_prob_sum + 
+      u_Update$store_theta_prob
+  }
+  
   store_theta_n[,ii] = u_Update$dataMat1[,"ucl_n"]
   store_theta_t[,ii] = u_Update$dataMat1[,"ucl_t"]
   
@@ -264,6 +277,8 @@ for (ii in 1:numIter){
   
 } #end of iteration loop
 )
+
+store_theta_prob_ave = store_theta_prob_sum/(numIter - burnIn)
 
 # Rprof(NULL)
 # rprof_res = summaryRprof("iteration.out")$by.total
