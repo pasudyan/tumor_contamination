@@ -1,0 +1,138 @@
+\documentclass[10pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{palatino,color,graphicx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{fullpage}
+\usepackage{verbatim}
+
+\setlength{\parskip}{1pc}
+\setlength{\parindent}{0pt}
+\setlength{\topmargin}{-3pc}
+\setlength{\textheight}{9.5in}
+\setlength{\oddsidemargin}{0pc}
+\setlength{\evensidemargin}{0pc}
+\setlength{\textwidth}{6.5in}
+
+\title{Summary of Meeting July 19, 2016}
+\author{Putu Ayu Sudyanti}
+\date{}
+
+\begin{document}
+\maketitle
+The current algorithm poses some mixing problem in which the chain failed to explore other modes in the posterior. To fix this, an additional Metropolis-Hastings step is needed to guarantee that other possible solutions are considered. There are 2 different ways in which we can attempt this procedure; with independent or dependent transition probability. 
+\begin{enumerate}
+\item Independent transition probability \\
+The first method assumes that sampling of $(\theta_i^n \theta_i^t)$ and $\zeta^i$ are done independently in the transition probability of the Metropolis-Hastings step. The algorithm can be written as follows: 
+\begin{itemize}
+\item[i.] Randomly sample $\theta_i^* = (\theta_i^{n^*}, \theta_i^{t^*})$ uniformly each with probability $\dfrac{1}{9}$
+\item[ii.] Pick $P(\zeta_i^*|\theta_i^*)$ based on the following:
+\begin{itemize}
+\item If $\zeta_i$ is not a singleton:\\
+$\zeta_i^* = \zeta_{c^*}$ with probability $\dfrac{n_{c^*}}{N-1}$ where $c^* = 1,2, \cdots, K$
+\item Otherwise: \\
+$\zeta_i^* \sim H $ with probability 1
+\end{itemize}
+\item[iii.] Determine the acceptance probability of the Metropolis-Hastings by: \\
+\\
+$\begin{array}{rcl}
+r & = & \dfrac{
+P(\zeta_i^*, \theta_i^*|y) \times q(\zeta_i, \theta_i|\zeta_i^*, \theta_i^*)
+}{
+P(\zeta_i, \theta_i|y) \times q(\zeta_i^*, \theta_i^{n*}, \theta_i^{t*}|\zeta_i, \theta_i^{n}, \theta_i^{t})
+}\\
+\noalign{\medskip}
+&= &\dfrac{
+	\dfrac{1}{9} \dfrac{n_{c*}}{n+\alpha-1} \times P(y_i|\zeta_i^*, \theta_i^*)
+	}{
+	\dfrac{1}{9}\dfrac{n_{c}}{n+\alpha-1}\times P(y_i|\zeta_i, \theta_i)
+	} 
+	\dfrac{\dfrac{1}{9}\dfrac{n_{c}}{N-1}}{\dfrac{1}{9}\dfrac{n_{c^*}}{N-1}
+	}\\
+\noalign{\bigskip}
+&= &\dfrac{P(y_i|\zeta_i^*, \theta_i^*)}{P(y_i|\zeta_i, \theta_i)}
+\end{array}$
+\end{itemize}
+\item Dependent transition \\
+This second method assumes that the choice of $\zeta_i$ should depend on the sample of $(\theta_i^n, \theta_i^t)$ in the transition probability of the algorithm. The pseudo-code is as follows:
+\begin{itemize}
+\item[i.] Propose $\theta^* = (\theta_i^{n*}, \theta_i^{t*})$ uniformly with probability $\dfrac{1}{9}$
+\item[ii.] For nonsingleton: \\
+Set $\zeta^* = \zeta_{c^*}$ for an existing cluster $c^* = 1, 2, \cdots, K$ with probability \\
+\\
+$\begin{array}{rcl}
+q(\zeta^* = \zeta_{c^*}|\theta^*) \propto \dfrac{
+	n_{c^*} P(y_i|\zeta_{c^*}, \theta^*)
+}{z(\theta^*)}
+\end{array}$ \\
+where $z(\theta^*) = \sum_{j=1}^K n_j P(y_i|\zeta_j, \theta^*)$. The acceptance rate will be: \\
+$\begin{array}{rcl}
+r & = & \dfrac{
+P(y_i, \theta^*, \zeta^*)
+}{
+P(y_i, \theta, \zeta)
+} \times \dfrac{
+q(\theta, \zeta)
+}{
+q(\theta^*, \zeta^*)
+}\\
+\noalign{\medskip}
+
+&=& \dfrac{
+	\dfrac{1}{9} \dfrac{
+	n_{c^*}
+	}{
+	N+\alpha-1
+	} P(y_i|\theta^*, \zeta_{c^*})
+}{
+\dfrac{1}{9} \dfrac{
+n_{c}
+}{
+N+\alpha-1
+} P(y_i|\theta, \zeta)} \times 
+\dfrac{\dfrac{1}{9} 
+\dfrac{
+n_{c} P(y_i|\zeta_{c}, \theta)
+}{
+z(\theta)}
+}{\dfrac{1}{9} 
+\dfrac{n_{c^*} P(y_i|\zeta_{c^*}, \theta^*)
+}{z(\theta^*)}
+}\\
+\noalign{\medskip}
+&=& \dfrac{z(\theta^*)}{z(\theta)}
+\end{array}$\\
+\item[iii.] For singleton: \\
+The transition probability is $q(\zeta^*) = p(\zeta^*)$ then the acceptance rate becomes: \\
+
+$\begin{array}{rcl}
+r & = & \dfrac{
+P(y_i, \theta^*, \zeta^*)
+}{
+P(y_i, \theta, \zeta)
+} \times \dfrac{
+q(\theta, \zeta)
+}{
+q(\theta^*, \zeta^*)
+}\\
+\noalign{\medskip}
+
+&=& \dfrac{
+	\dfrac{1}{9} P(\zeta^*) P(y_i|\theta^*, \zeta_{c^*})
+}{
+\dfrac{1}{9} P(\zeta) P(y_i|\theta, \zeta)
+} \times 
+\dfrac{
+\dfrac{1}{9} P(\zeta)
+}{
+\dfrac{1}{9} P(\zeta^*)
+}\\
+\noalign{\medskip}
+&=& \dfrac{P(y_i|\zeta^*, \theta_*)}{P(y_i|\zeta, \theta)}
+\end{array}$\\
+\end{itemize}  
+\end{enumerate}
+\end{document}
