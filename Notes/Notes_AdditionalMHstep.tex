@@ -29,110 +29,133 @@ The current algorithm poses some mixing problem in which the chain failed to exp
 The first method assumes that sampling of $(\theta_i^n \theta_i^t)$ and $\zeta^i$ are done independently in the transition probability of the Metropolis-Hastings step. The algorithm can be written as follows: 
 \begin{itemize}
 \item[i.] Randomly sample $\theta_i^* = (\theta_i^{n^*}, \theta_i^{t^*})$ uniformly each with probability $\dfrac{1}{9}$
-\item[ii.] Pick $P(\zeta_i^*|\theta_i^*)$ based on the following:
+\item[ii.] Pick $P(\zeta_i^{1*}|\theta_i^*)$ and $P(\zeta_i^{2*}|\theta_i^*)$ based on the following:
 \begin{itemize}
-\item If $\zeta_i$ is not a singleton:\\
-$\zeta_i^* = \zeta_{c^*}$ with probability $\dfrac{n_{c^*}}{N-1}$ where $c^* = 1,2, \cdots, K$
+\item If $\zeta_i^d$ is not a singleton:\\
+$\zeta_i^{d*} = \zeta_{c^*}^d$ with probability $\dfrac{n_{c^*}^d}{N-1}$ where $c^* = 1,2, \cdots, K_d$
 \item Otherwise: \\
-$\zeta_i^* \sim H $ with probability 1
+$\zeta_i^{d*} \sim H $ with probability 1
 \end{itemize}
+where $d = 1, 2$ for the two data sets. 
 \item[iii.] Determine the acceptance probability of the Metropolis-Hastings by: \\
 \\
 $\begin{array}{rcl}
 r & = & \dfrac{
-P(\zeta_i^*, \theta_i^*|y) \times q(\zeta_i, \theta_i|\zeta_i^*, \theta_i^*)
+P(\zeta_i^{1*}, \zeta_i^{2*}, \theta_i^*|y_i^1, y_i^2) \, q(\zeta_i^1, \zeta_i^2, \theta_i|\zeta_i^{1*}, \zeta_i^{2*}, \theta_i^*)
 }{
-P(\zeta_i, \theta_i|y) \times q(\zeta_i^*, \theta_i^{n*}, \theta_i^{t*}|\zeta_i, \theta_i^{n}, \theta_i^{t})
+P(\zeta_i^{1}, \zeta_i^{2}, \theta_i|y_i^1, y_i^2) \, q(\zeta_i^{1*}, \zeta_i^{2*}, \theta_i^*|\zeta_i^1, \zeta_i^2, \theta_i)
+}\\
+\noalign{\bigskip}
+&= &\dfrac{P(y_i^1|\zeta_i^{1*}, \theta_i^*)\, P(y_i^2|\zeta_i^{2*}, \theta_i^*) \,
+P(\zeta_i^{1*}|\theta_i^*)\, P(\zeta_i^{2*}|\theta_i^*)\, P(\theta_i^*) \, 
+q(\zeta_i^1, \zeta_i^2, \theta_i|\zeta_i^{1*}, \zeta_i^{2*}, \theta_i^*)
+}{
+P(y_i^1|\zeta_i^{1}, \theta_i)\, P(y_i^2|\zeta_i^{2}, \theta_i)\, P(\zeta_i^{1}|\theta_i)\, P(\zeta_i^{2}|\theta_i)\, P(\theta_i)\, q(\zeta_i^{1*}, \zeta_i^{2*}, \theta_i^*|\zeta_i^1, \zeta_i^2, \theta_i)
 }\\
 \noalign{\medskip}
 &= &\dfrac{
-	\dfrac{1}{9} \dfrac{n_{c*}}{n+\alpha-1} \times P(y_i|\zeta_i^*, \theta_i^*)
+	P(y_i^1|\zeta_i^{1*}, \theta_i^*)\, P(y_i^2|\zeta_i^{2*}, \theta_i^*)\, \dfrac{n_{c*}^1}{N+\alpha-1}\, \dfrac{n_{c*}^2}{N+\alpha-1}\, \dfrac{1}{9}  
 	}{
-	\dfrac{1}{9}\dfrac{n_{c}}{n+\alpha-1}\times P(y_i|\zeta_i, \theta_i)
-	} 
-	\dfrac{\dfrac{1}{9}\dfrac{n_{c}}{N-1}}{\dfrac{1}{9}\dfrac{n_{c^*}}{N-1}
+	P(y_i^1|\zeta_i^{1}, \theta_i)\, P(y_i^2|\zeta_i^{2}, \theta_i)\, \dfrac{n_{c}^1}{N+\alpha-1}\, \dfrac{n_{c}^2}{N+\alpha-1}\, \dfrac{1}{9}
+	} \times
+	\dfrac{
+	\dfrac{n_c^1}{N-1}\, \dfrac{n_c^2}{N-1}\, \dfrac{1}{9} 
+	}{
+	\dfrac{n_{c^*}^1}{N-1}\, \dfrac{n_{c^*}^2}{N-1}\, \dfrac{1}{9} 
 	}\\
 \noalign{\bigskip}
-&= &\dfrac{P(y_i|\zeta_i^*, \theta_i^*)}{P(y_i|\zeta_i, \theta_i)}
-\end{array}$
+&= &\dfrac{
+	P(y_i^1|\zeta_i^{1*}, \theta_i^*)\, P(y_i^2|\zeta_i^{2*}, \theta_i^*)
+	}{
+	P(y_i^1|\zeta_i^{1}, \theta_i)\, P(y_i^2|\zeta_i^{2}, \theta_i)
+	}
+\end{array}$\\
+\\
+So the acceptance rate is: \\
+\\
+$PrAcc = \min\{1,r\}$
 \end{itemize}
 \item Dependent transition \\
-This second method assumes that the choice of $\zeta_i$ should depend on the sample of $(\theta_i^n, \theta_i^t)$ in the transition probability of the algorithm. The pseudo-code is as follows:
+This second method assumes that the choice of $\zeta_i^d$ should depend on the sample of $(\theta_i^n, \theta_i^t)$ in the transition probability of the algorithm. The pseudo-code is as follows:
 \begin{itemize}
-\item[i.] Propose $\theta^* = (\theta_i^{n*}, \theta_i^{t*})$ uniformly with probability $\dfrac{1}{9}$
+\item[i.] Propose $\theta_i^* = (\theta_i^{n*}, \theta_i^{t*})$ uniformly with probability $\dfrac{1}{9}$
 \item[ii.] For nonsingleton: \\
-Set $\zeta^* = \zeta_{c^*}$ for an existing cluster $c^* = 1, 2, \cdots, K$ with probability \\
+Set $\zeta_i^{d*} = \zeta_{c^*}^d$ for an existing cluster $c^* = 1, 2, \cdots, K_d$ with probability \\
 \\
 $\begin{array}{rcl}
-q(\zeta^* = \zeta_{c^*}|\theta^*) \propto \dfrac{
-	n_{c^*} P(y_i|\zeta_{c^*}, \theta^*)
+q(\zeta_i^{d*} = \zeta_{c^*}^d|\theta^*) \propto \dfrac{
+	n_{c^*}^d P(y_i^d|\zeta_{c^*}^d, \theta^*)
 }{z(\theta^*)}
 \end{array}$ \\
-where $z(\theta^*) = \sum_{j=1}^K n_j P(y_i|\zeta_j, \theta^*)$. The acceptance rate will be: \\
+where $z^d(\theta^*) = \sum_{j=1}^K n_j^d P(y_i^d|\zeta_j^d, \theta^*)$. Then: \\
+\\
 $\begin{array}{rcl}
 r & = & \dfrac{
-P(y_i, \theta^*, \zeta^*)
-}{
-P(y_i, \theta, \zeta)
+P(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|y_i^1, y_i^2)
+}{ 
+P(\theta_i, \zeta_i^{1}, \zeta_i^{2}|y_i^1, y_i^2)
 } \times \dfrac{
-q(\theta, \zeta)
+q(\theta_i, \zeta_i^1, \zeta_i^2|\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*})
 }{
-q(\theta^*, \zeta^*)
+q(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|\theta_i, \zeta_i^1, \zeta_i^2)
 }\\
 \noalign{\medskip}
-
 &=& \dfrac{
-	\dfrac{1}{9} \dfrac{
-	n_{c^*}
-	}{
-	N+\alpha-1
-	} P(y_i|\theta^*, \zeta_{c^*})
+	P(y_i^1|\zeta_{c^*}^{1}, \theta_i^*)\, P(y_i^2|\zeta_{c^*}^{2}, \theta_i^*)\, \dfrac{1}{9}\, \dfrac{n_{c^*}^1}{N+\alpha-1}\, \dfrac{n_{c^*}^2}{N+\alpha-1} 
 }{
-\dfrac{1}{9} \dfrac{
-n_{c}
-}{
-N+\alpha-1
-} P(y_i|\theta, \zeta)} \times 
-\dfrac{\dfrac{1}{9} 
+	P(y_i^1|\zeta_c^{1}, \theta_i)\, P(y_i^2|\zeta_c^{2}, \theta_i)\, \dfrac{1}{9}\, \dfrac{n_{c}^1}{N+\alpha-1}\, \dfrac{n_{c}^2}{N+\alpha-1}
+} 
+\times 
 \dfrac{
-n_{c} P(y_i|\zeta_{c}, \theta)
+	\dfrac{1}{9}\, \dfrac{n_{c}^1 P(y_i^1|\zeta_{c}^1, \theta_i)}{z(\theta_i)}\,
+	\dfrac{n_{c}^2 P(y_i^2|\zeta_{c}^2, \theta_i)}{z(\theta_i)}
 }{
-z(\theta)}
-}{\dfrac{1}{9} 
-\dfrac{n_{c^*} P(y_i|\zeta_{c^*}, \theta^*)
-}{z(\theta^*)}
+	\dfrac{1}{9}\, \dfrac{n_{c^*}^1 P(y_i^1|\zeta_{c^*}^1, \theta_i^*)}{z(\theta_i^*)}\,
+	\dfrac{n_{c^*}^2 P(y_i^2|\zeta_{c^*}^2, \theta_i^*)}{z(\theta_i^*)}
 }\\
 \noalign{\medskip}
-&=& \dfrac{z(\theta^*)}{z(\theta)}
+&=& \dfrac{z^1(\theta_i^*)z^2(\theta_i^*)}{z^1(\theta_i)z^2(\theta_i)}
 \end{array}$\\
+\\
+Thus, the acceptance probability is:\\ 
+\\
+$PrAcc = \min\{1,r\}$
 \item[iii.] For singleton: \\
-The transition probability is $q(\zeta^*) = p(\zeta^*)$ then the acceptance rate becomes: \\
+The transition probability is $q(\zeta_i^{d*}) = p(\zeta_i^{d*})$ then: \\
 
 $\begin{array}{rcl}
 r & = & \dfrac{
-P(y_i, \theta^*, \zeta^*)
-}{
-P(y_i, \theta, \zeta)
+P(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|y_i^1, y_i^2)
+}{ 
+P(\theta_i, \zeta_i^{1}, \zeta_i^{2}|y_i^1, y_i^2)
 } \times \dfrac{
-q(\theta, \zeta)
+q(\theta_i, \zeta_i^1, \zeta_i^2|\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*})
 }{
-q(\theta^*, \zeta^*)
+q(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|\theta_i, \zeta_i^1, \zeta_i^2)
 }\\
 \noalign{\medskip}
 
 &=& \dfrac{
-	\dfrac{1}{9} P(\zeta^*) P(y_i|\theta^*, \zeta_{c^*})
+	\dfrac{1}{9} P(\zeta_i^{1*}) P(\zeta_i^{2*}) P(y_i^1|\theta_i^*, \zeta_i^{1*}) P(y_i^2|\theta_i^*, \zeta_i^{2*})
 }{
-\dfrac{1}{9} P(\zeta) P(y_i|\theta, \zeta)
+\dfrac{1}{9} P(\zeta_i^1) P(\zeta_i^{2}) P(y_i^1|\theta_i, \zeta_i^{1}) P(y_i^2|\theta_i, \zeta_i^{2})
 } \times 
 \dfrac{
-\dfrac{1}{9} P(\zeta)
+\dfrac{1}{9} P(\zeta_i^1) P(\zeta_i^2) 
 }{
-\dfrac{1}{9} P(\zeta^*)
+\dfrac{1}{9} P(\zeta_i^{1*}) P(\zeta_i^{2*})
 }\\
 \noalign{\medskip}
-&=& \dfrac{P(y_i|\zeta^*, \theta_*)}{P(y_i|\zeta, \theta)}
+&=& \dfrac{
+	P(y_i^1|\theta_i^*, \zeta_i^{1*}) P(y_i^2|\theta_i^*, \zeta_i^{2*})
+	}{
+	P(y_i^1|\theta_i, \zeta_i^{1}) P(y_i^2|\theta_i, \zeta_i^{2})
+	}
 \end{array}$\\
+\\
+And the acceptance probabilitity is: \\
+\\
+$PrAcc = \min\{1,r\}$
 \end{itemize}  
 \end{enumerate}
 \end{document}
