@@ -136,26 +136,64 @@ q(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|\theta_i, \zeta_i^1, \zeta_i^2)
 \noalign{\medskip}
 
 &=& \dfrac{
-	\dfrac{1}{9} P(\zeta_i^{1*}) P(\zeta_i^{2*}) P(y_i^1|\theta_i^*, \zeta_i^{1*}) P(y_i^2|\theta_i^*, \zeta_i^{2*})
+	\dfrac{1}{9}\, P(\zeta_i^{1*})\, P(\zeta_i^{2*})\, P(y_i^1|\theta_i^*, \zeta_i^{1*})\, P(y_i^2|\theta_i^*, \zeta_i^{2*})\,
 }{
-\dfrac{1}{9} P(\zeta_i^1) P(\zeta_i^{2}) P(y_i^1|\theta_i, \zeta_i^{1}) P(y_i^2|\theta_i, \zeta_i^{2})
+\dfrac{1}{9}\, P(\zeta_i^1)\, P(\zeta_i^{2})\, P(y_i^1|\theta_i, \zeta_i^{1})\, P(y_i^2|\theta_i, \zeta_i^{2})\,
 } \times 
 \dfrac{
-\dfrac{1}{9} P(\zeta_i^1) P(\zeta_i^2) 
+\dfrac{1}{9}\, P(\zeta_i^1)\, P(\zeta_i^2)\, 
 }{
-\dfrac{1}{9} P(\zeta_i^{1*}) P(\zeta_i^{2*})
+\dfrac{1}{9}\, P(\zeta_i^{1*})\, P(\zeta_i^{2*})\,
 }\\
 \noalign{\medskip}
 &=& \dfrac{
-	P(y_i^1|\theta_i^*, \zeta_i^{1*}) P(y_i^2|\theta_i^*, \zeta_i^{2*})
+	P(y_i^1|\theta_i^*, \zeta_i^{1*})\, P(y_i^2|\theta_i^*, \zeta_i^{2*})
 	}{
-	P(y_i^1|\theta_i, \zeta_i^{1}) P(y_i^2|\theta_i, \zeta_i^{2})
+	P(y_i^1|\theta_i, \zeta_i^{1})\, P(y_i^2|\theta_i, \zeta_i^{2})
 	}
 \end{array}$\\
 \\
 And the acceptance probabilitity is: \\
 \\
 $PrAcc = \min\{1,r\}$
+
+\item[iv.] For both singleton and non-singleton at location $i$: \\
+Sample $\zeta_i^d$ corresponding to the state of their cluster as seen in (ii.) and (iii.). Assume $\zeta_i^1$ is nonsingleton and $\zeta_i^2$ is a singleton. Then: \\
+
+$\begin{array}{rcl}
+r & = & \dfrac{
+P(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|y_i^1, y_i^2)
+}{ 
+P(\theta_i, \zeta_i^{1}, \zeta_i^{2}|y_i^1, y_i^2)
+} \times \dfrac{
+q(\theta_i, \zeta_i^1, \zeta_i^2|\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*})
+}{
+q(\theta_i^*, \zeta_i^{1*}, \zeta_i^{2*}|\theta_i, \zeta_i^1, \zeta_i^2)
+}\\
+\noalign{\medskip}
+
+&=& \dfrac{
+	\dfrac{1}{9}\, \dfrac{n_{c^*}^1}{N+\alpha-1}\, P(\zeta_i^{2*})\, P(y_i^1|\theta_i^*, \zeta_i^{1*})\, P(y_i^2|\theta_i^*, \zeta_i^{2*})\,
+}{
+\dfrac{1}{9}\, \dfrac{n_{c}^1}{N+\alpha-1}\, P(\zeta_i^{2})\, P(y_i^1|\theta_i, \zeta_i^{1})\, P(y_i^2|\theta_i, \zeta_i^{2})\,
+} \times 
+
+\dfrac{
+\dfrac{1}{9}\,  \dfrac{n_{c}^1 P(y_i^1|\zeta_{c}^1, \theta_i)}{z(\theta_i)}\, P(\zeta_i^2) 
+}{
+\dfrac{1}{9}\, \dfrac{n_{c^*}^1 P(y_i^1|\zeta_{c}^{1*}, \theta_i^*)}{z(\theta_i^*)}\, P(\zeta_i^{2*})
+}\\
+\noalign{\medskip}
+&=& \dfrac{
+	P(y_i^1|\theta_i^*, \zeta_i^{1*})\, P(y_i^2|\theta_i^*, \zeta_i^{2*})\, z(\theta_i^*)
+	}{
+	P(y_i^1|\theta_i, \zeta_i^{1})\, P(y_i^2|\theta_i, \zeta_i^{2})\, z(\theta_i)
+	}
+\end{array}$\\
+\\
+So the acceptance probability is: \\
+\\
+$PrAcc = \min\{1, r\}$
 \end{itemize}  
 \end{enumerate}
 \end{document}
